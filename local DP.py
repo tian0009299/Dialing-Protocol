@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import norm
+import math
 
 
 def generate_gaussian_request_count(n, sigma):
@@ -112,7 +113,8 @@ def generate_outputs(inputs, request_count):
 
 
 
-def test(request_count, epsilon):
+def test_correctness(n, sigma, epsilon):
+    request_count = generate_gaussian_request_count(n, sigma)
     inputs = generate_inputs(request_count)
     outputs = generate_outputs(inputs=inputs, request_count=request_count)
     inputs_with_noise, request_count_with_noise = local_dp(inputs, epsilon=epsilon)
@@ -128,10 +130,24 @@ def test(request_count, epsilon):
     print("Correctness_fake: ", correctness_with_noise)
 
 
+def calculate_max_difference(x, n, epsilon):
+    probability_original = 1 / x
+    probability_now = (math.exp(epsilon) / (n - 1 + math.exp(epsilon))) * (1/x)
+
+    return probability_original, probability_now
+
+
+
 
 n = 1000
 sigma = 500
 epsilon = np.log(50)
-request_count = generate_gaussian_request_count(n, sigma)
-test(request_count=request_count, epsilon=epsilon)
+test_correctness(n, sigma, epsilon)
+
+# x = 1
+# n = 1000
+# epsilon = np.log(50)
+# probability_original, probability_now = calculate_max_difference(x, n, epsilon)
+# print("original: ", probability_original)
+# print("now: ", probability_now)
 
