@@ -191,8 +191,6 @@ def calculate_leakage(input, corrupted):
     print_detailed_possibilities(corrupted, detailed_possibilities)
 
 
-
-
 # input = [1,2,3,1,2,3,1,2,3]
 # corrupted = [1,2,3,6,8,9]
 input = [2,1,2,2,1]
