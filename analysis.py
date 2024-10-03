@@ -1,1 +1,4 @@
-print(list(range(1,5)))
+import math
+print(math.perm(2,2))
+print(math.perm(3,3))
+print(math.perm(4,4))
