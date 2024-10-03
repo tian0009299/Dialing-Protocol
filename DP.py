@@ -1,6 +1,25 @@
 import numpy as np
-import random
 import math
+import random
+
+
+def local_dp(inputs, epsilon):
+    n = len(inputs)
+    p_true = np.exp(epsilon) / (n - 1 + np.exp(epsilon))
+    p_fake = (n - 1) / (n - 1 + np.exp(epsilon))
+    inputs_with_noise = inputs.copy()
+
+    for i in range(n):
+        if np.random.rand() < p_fake:
+            possible_choices = [x for x in range(1, n + 1) if x != inputs[i]]
+            inputs_with_noise[i] = np.random.choice(possible_choices)
+
+    request_count_with_noise = [0] * n
+    for request in inputs_with_noise:
+        request_count_with_noise[request - 1] += 1  # 统计每个P_i收到的请求数量
+
+    return inputs_with_noise, request_count_with_noise
+
 
 def exponential_mechanism_simplified(output, n, epsilon):
     # 1. 遍历不同的 u(x, r) 的值，从 n 到 1，计算权重
@@ -163,8 +182,3 @@ def exponential_mechanism_simplified_adjusted(output, n, epsilon):
     # 6. 输出扰动后的 output
     return perturbed_output
 
-n=1000
-output = []
-for i in range(n):
-    output.append(i+1)
-exponential_mechanism_simplified_adjusted(output, n, np.log(2))
