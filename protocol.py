@@ -50,34 +50,31 @@ def generate_inputs(request_count):
 def generate_outputs(inputs, request_count):
     n = len(inputs)
 
-    # Step 1: 找到 request_count 中值为 0 的项，并使用集合 NO
-    NO = {i + 1 for i, count in enumerate(request_count) if count == 0}  # 使用集合存储 NO
-    outputs = inputs.copy()  # 初始化 outputs 为 inputs 的副本
-    processed_indices = []  # 用列表存储已经处理过的索引
+    # Step 1: Find the invitees who have no inviter and store them in the set NO
+    NO = {i + 1 for i, count in enumerate(request_count) if count == 0}  # Store invitees with no inviter in the set NO
+    outputs = inputs.copy()  # Initialize outputs as a copy of inputs
+    processed_indices = []  # Store the processed indices in a list
 
-    # Step 2: 遍历 request_count 中大于 0 的项
+    # Step 2: Iterate over items in request_count that are greater than 0
     for idx, count in enumerate(request_count):
         if count == 0:
-            continue  # 如果为0，跳过处理
+            continue  # Skip if count is 0
 
-
-        # 当前处理的是 (idx + 1) 对应的值
+        # Currently processing the value corresponding to (idx + 1)
         target_value = idx + 1
 
-        # 找到 inputs 中所有等于 target_value 的项的索引，且这些索引还没有被处理过
+        # Find all indices in inputs that are equal to target_value and have not been processed
         target_indices = [i for i, value in enumerate(inputs) if value == target_value]
 
-
-        # 从这些 target_indices 中随机选择一个保留
+        # Randomly select one index to keep from target_indices
         keep_index = np.random.choice(target_indices)
 
-
-        # 其余项进行替换
+        # Replace the remaining items
         for i in target_indices:
             if i == keep_index:
-                continue  # 保留该项，不做替换
+                continue  # Keep this item, do not replace it
             if NO:
-                new_value = NO.pop()  # 从 NO 集合中随机选择并移除一个值
-                outputs[i] = new_value  # 替换当前值
+                new_value = NO.pop()  # Randomly select and remove a value from the set NO
+                outputs[i] = new_value  # Replace the current value
 
     return outputs

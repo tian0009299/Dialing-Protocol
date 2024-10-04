@@ -16,100 +16,100 @@ def local_dp(inputs, epsilon):
 
     request_count_with_noise = [0] * n
     for request in inputs_with_noise:
-        request_count_with_noise[request - 1] += 1  # 统计每个P_i收到的请求数量
+        request_count_with_noise[request - 1] += 1  # Count the number of requests each P_i receives
 
     return inputs_with_noise, request_count_with_noise
 
 
 def exponential_mechanism_simplified(output, n, epsilon):
-    # 1. 遍历不同的 u(x, r) 的值，从 n 到 1，计算权重
+    # 1. Iterate over different u(x, r) values from n to 1 and calculate weights
     def calculate_weights(n, epsilon):
         weights = {}
         weights[0] = np.exp(epsilon * n / 4)
-        for i in range(2, n + 1):  # 从2到n（不考虑1项变化）
-            weight = np.exp((epsilon * (n - i)) / 4)  # 使用你的公式
+        for i in range(2, n + 1):  # From 2 to n (ignoring 1)
+            weight = np.exp((epsilon * (n - i)) / 4)  # Using your formula
             weights[i] = weight
         return weights
 
-    # 2. 计算sum latex中的公式
+    # 2. Calculate the sum based on the formula in LaTeX
     def calculate_sum(weights):
         sum_weight = 0
         sum_weight += math.perm(n, 0) * weights[0]
         for i in range(2, n + 1):
-            sum_weight += (math.perm(n, i) * (math.factorial(i)-1)/math.factorial(i)) * weights[i]
+            sum_weight += (math.perm(n, i) * (math.factorial(i) - 1) / math.factorial(i)) * weights[i]
         return sum_weight
 
-    # 3. 计算改变不同个数元素的概率
+    # 3. Calculate the probability of changing a different number of elements
     def calculate_probabilities(weights, sum_weights):
         probabilities = {}
         for i in weights:
             if i == 0:
-                # 针对 i = 0 的特殊操作
+                # Special case for i = 0
                 probabilities[i] = math.perm(n, 0) * weights[0] / sum_weights
             elif i == 1:
                 pass
             else:
-                # 其他情况按原来的方式处理
-                probabilities[i] = (math.perm(n, i) * (math.factorial(i)-1)/math.factorial(i)) * weights[i] / sum_weights
+                # Handle other cases as before
+                probabilities[i] = (math.perm(n, i) * (math.factorial(i) - 1) / math.factorial(i)) * weights[i] / sum_weights
 
         return probabilities
 
-    # 4. 根据概率随机采样选择要改变几个元素
+    # 4. Randomly sample how many elements to change based on the probabilities
     def select_change_size(probabilities):
         keys = list(probabilities.keys())
         values = list(probabilities.values())
         return np.random.choice(keys, p=values)
 
-    # 5. 随机选择要改变的 x 个元素，并打乱顺序，确保不是原来的顺序
+    # 5. Randomly select x elements to change and shuffle their order to ensure they are not in the original order
     def shuffle_elements(output, change_size):
-        indices_to_change = random.sample(range(n), change_size)  # 随机选择 x 个元素的索引
+        indices_to_change = random.sample(range(n), change_size)  # Randomly select indices for x elements
         indices_to_change = sorted(indices_to_change)
         print("indices_to_change: ", indices_to_change)
-        elements_to_change = [output[i] for i in indices_to_change]  # 获取这些元素
+        elements_to_change = [output[i] for i in indices_to_change]  # Get the elements
 
-        random.shuffle(elements_to_change)  # 打乱元素顺序
+        random.shuffle(elements_to_change)  # Shuffle the elements
 
-        # 生成新的output
+        # Generate the new output
         new_output = output.copy()
         for idx, new_element in zip(indices_to_change, elements_to_change):
             new_output[idx] = new_element
         return new_output
 
-    # 1. 计算权重
+    # 1. Calculate the weights
     weights = calculate_weights(n, epsilon)
     print(weights)
 
-    # 2. 计算 sum
+    # 2. Calculate the sum
     sum_weights = calculate_sum(weights)
     print(sum_weights)
 
-    # 3. 计算概率
+    # 3. Calculate the probabilities
     probabilities = calculate_probabilities(weights, sum_weights)
     print(probabilities)
 
-    # 4. 随机选择要改变的元素个数
+    # 4. Randomly select how many elements to change
     change_size = select_change_size(probabilities)
     print(change_size)
 
-    # 5. 随机选择 x 个元素并打乱
+    # 5. Randomly select x elements and shuffle them
     perturbed_output = shuffle_elements(output, change_size)
     print(perturbed_output)
 
-    # 6. 输出扰动后的 output
+    # 6. Return the perturbed output
     return perturbed_output
 
 
 def exponential_mechanism_simplified_adjusted(output, n, epsilon):
-    # 1. 遍历不同的 u(x, r) 的值，从 n 到 1，计算权重
+    # 1. Iterate over different u(x, r) values from n to 1 and calculate weights
     def calculate_weights(n, epsilon):
         weights = {}
         weights[0] = np.exp(epsilon * n / 4)
-        for i in range(2, n + 1):  # 从2到n（不考虑1项变化）
-            weight = np.exp((epsilon * (n - i)) / 4)  # 使用你的公式
+        for i in range(2, n + 1):  # From 2 to n (ignoring 1)
+            weight = np.exp((epsilon * (n - i)) / 4)  # Using your formula
             weights[i] = weight
         return weights
 
-    # 2. 计算sum latex中的公式
+    # 2. Calculate the sum based on the formula in LaTeX
     def calculate_sum(weights):
         sum_weight = 0
         sum_weight += weights[0]
@@ -117,38 +117,38 @@ def exponential_mechanism_simplified_adjusted(output, n, epsilon):
             sum_weight += weights[i]
         return sum_weight
 
-    # 3. 计算改变不同个数元素的概率
+    # 3. Calculate the probability of changing a different number of elements
     def calculate_probabilities(weights, sum_weights):
         probabilities = {}
         for i in weights:
             if i == 0:
-                # 针对 i = 0 的特殊操作
+                # Special case for i = 0
                 probabilities[i] = weights[0] / sum_weights
             elif i == 1:
                 pass
             else:
-                # 其他情况按原来的方式处理
+                # Handle other cases as before
                 probabilities[i] = weights[i] / sum_weights
 
         return probabilities
 
-    # 4. 根据概率随机采样选择要改变几个元素
+    # 4. Randomly sample how many elements to change based on the probabilities
     def select_change_size(probabilities):
         keys = list(probabilities.keys())
         values = list(probabilities.values())
         return np.random.choice(keys, p=values)
 
-    # 5. 随机选择要改变的 x 个元素，并打乱顺序，确保不是原来的顺序
+    # 5. Randomly select x elements to change and shuffle their order to ensure they are not in the original order
     def shuffle_elements(output, change_size):
-        indices_to_change = random.sample(range(n), change_size)  # 随机选择 x 个元素的索引
+        indices_to_change = random.sample(range(n), change_size)  # Randomly select indices for x elements
         indices_to_change = sorted(indices_to_change)
         print("indices_to_change: ", indices_to_change)
         if len(indices_to_change) > 1:
-            elements_to_change = [output[i] for i in indices_to_change]  # 获取这些元素
+            elements_to_change = [output[i] for i in indices_to_change]  # Get the elements
             shuffled_lst = elements_to_change[:]
             while True:
-                random.shuffle(shuffled_lst)  # 打乱列表
-                if shuffled_lst != elements_to_change:  # 确保打乱后的列表和原始列表不同
+                random.shuffle(shuffled_lst)  # Shuffle the list
+                if shuffled_lst != elements_to_change:  # Ensure the shuffled list is different from the original
                     break
             new_output = output.copy()
             for idx, new_element in zip(indices_to_change, shuffled_lst):
@@ -156,29 +156,26 @@ def exponential_mechanism_simplified_adjusted(output, n, epsilon):
             return new_output
         return output
 
-
-
-
-    # 1. 计算权重
+    # 1. Calculate the weights
     weights = calculate_weights(n, epsilon)
     print(weights)
 
-    # 2. 计算 sum
+    # 2. Calculate the sum
     sum_weights = calculate_sum(weights)
     print(sum_weights)
 
-    # 3. 计算概率
+    # 3. Calculate the probabilities
     probabilities = calculate_probabilities(weights, sum_weights)
     print(probabilities)
 
-    # 4. 随机选择要改变的元素个数
+    # 4. Randomly select how many elements to change
     change_size = select_change_size(probabilities)
     print(change_size)
 
-    # 5. 随机选择 x 个元素并打乱
+    # 5. Randomly select x elements and shuffle them
     perturbed_output = shuffle_elements(output, change_size)
     print(perturbed_output)
 
-    # 6. 输出扰动后的 output
+    # 6. Return the perturbed output
     return perturbed_output
 
