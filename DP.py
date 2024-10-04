@@ -178,4 +178,3 @@ def exponential_mechanism_simplified_adjusted(output, n, epsilon):
 
     # 6. Return the perturbed output
     return perturbed_output
-
