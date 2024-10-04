@@ -1,40 +1,9 @@
 import numpy as np
-import math
+
 import matplotlib.pyplot as plt
 from scipy.interpolate import make_interp_spline
 from protocol import generate_gaussian_request_count, generate_inputs, generate_outputs
 from DP import local_dp, exponential_mechanism_simplified_adjusted
-
-
-def calculate_max_difference(x, n, epsilon):
-    probability_original = 1 / x
-    probability_now = (math.exp(epsilon) / (n - 1 + math.exp(epsilon))) * (1/x)
-    return probability_original, probability_now
-
-
-def count_values(request_count):
-    counts = [0] * len(request_count)  # Initialize a list to hold counts for each value
-    for value in request_count:
-        counts[value] += 1  # Increment the count for the value
-    return counts
-
-
-def calculate_average_difference(n, sigma, epsilon):
-    request_count = generate_gaussian_request_count(n, sigma)
-    request_count_count = count_values(request_count)
-    # print("request_count: ", request_count)
-    # print("request_count_count: ", request_count_count)
-    sum_original = 0
-    for i in range(1, n):
-        sum_original += 1 * (request_count_count[i])
-    average_original = sum_original / n
-    # print("average_original: ", average_original)
-    sum_now = 0
-    for i in range(1, n):
-        sum_now += (math.exp(epsilon) / (n - 1 + math.exp(epsilon))) * (request_count_count[i])
-    average_now = sum_now / n
-    # print("average_now: ", average_now)
-    return average_original, average_now
 
 
 def calculate_correctness(n, sigma, epsilon):
@@ -93,41 +62,38 @@ def analyze_correctness(m, n, sigma, epsilon):
     plt.show()
 
 
-def analyze_correctness_epsilon_effect(n, sigma, epsilon_values, runs=50):
+def compare_n_effect_on_correctness(sigma, epsilon, n_values, runs=50):
     avg_correctness = []
     avg_correctness_with_noise = []
 
-    for epsilon in epsilon_values:
+    for n in n_values:
         total_correctness = 0
         total_correctness_with_noise = 0
 
-        # 多次运行 test_correctness 并计算平均值
+        # 运行 'runs' 次，取平均值
         for _ in range(runs):
             correctness, correctness_with_noise = calculate_correctness(n, sigma, epsilon)
             total_correctness += correctness
             total_correctness_with_noise += correctness_with_noise
 
-        avg_correctness.append(total_correctness / runs)
-        avg_correctness_with_noise.append(total_correctness_with_noise / runs)
+        avg_correctness.append(total_correctness / (runs))  # 正确率除以 n
+        avg_correctness_with_noise.append(total_correctness_with_noise / (runs))
 
     # 平滑处理
-    epsilon_smooth = np.linspace(min(epsilon_values), max(epsilon_values), 300)
-    smooth_correctness = make_interp_spline(epsilon_values, avg_correctness)(epsilon_smooth)
-    smooth_correctness_with_noise = make_interp_spline(epsilon_values, avg_correctness_with_noise)(epsilon_smooth)
+    n_smooth = np.linspace(min(n_values), max(n_values), 300)
+    smooth_correctness = make_interp_spline(n_values, avg_correctness)(n_smooth)
+    smooth_correctness_with_noise = make_interp_spline(n_values, avg_correctness_with_noise)(n_smooth)
 
     # 绘制图表
     plt.figure(figsize=(10, 6))
+    plt.plot(n_smooth, smooth_correctness, label="Correctness (No Noise)", color='blue')
+    plt.plot(n_smooth, smooth_correctness_with_noise, label="Correctness (With Noise)", color='red')
 
-    plt.plot(epsilon_smooth, smooth_correctness, label="Correctness (No Noise)", color='blue')
-    plt.plot(epsilon_smooth, smooth_correctness_with_noise, label="Correctness (With Noise)", color='red')
-
-    plt.title(f"Effect of Epsilon on Correctness (n={n}, sigma={sigma})")
-    plt.xlabel("Epsilon")
-    plt.ylabel("Average Correctness")
+    plt.title(f"Effect of n on Correctness (sigma={sigma}, epsilon={epsilon})")
+    plt.xlabel("Number of Participants (n)")
+    plt.ylabel("Correctness (Average)")
     plt.legend()
     plt.grid(True)
-
-    # 显示图表
     plt.show()
 
 
@@ -168,4 +134,38 @@ def analyze_correctness_sigma_effect(n, epsilon, sigma_values, runs=50):
     # 显示图表
     plt.show()
 
-analyze_correctness(m=100, n=100, sigma=5, epsilon=np.log(50))
+
+
+def compare_n_effect_on_correctness(sigma, epsilon, n_values, runs=50):
+    avg_correctness = []
+    avg_correctness_with_noise = []
+
+    for n in n_values:
+        total_correctness = 0
+        total_correctness_with_noise = 0
+
+        # 运行 'runs' 次，取平均值
+        for _ in range(runs):
+            correctness, correctness_with_noise = calculate_correctness(n, sigma, epsilon)
+            total_correctness += correctness
+            total_correctness_with_noise += correctness_with_noise
+
+        avg_correctness.append(total_correctness / (runs))  # 正确率除以 n
+        avg_correctness_with_noise.append(total_correctness_with_noise / (runs))
+
+    # 绘制图表
+    plt.figure(figsize=(10, 6))
+    plt.plot(n_values, avg_correctness, label="Correctness (No Noise)", color='blue')
+    plt.plot(n_values, avg_correctness_with_noise, label="Correctness (With Noise)", color='red')
+
+    plt.title(f"Effect of n on Correctness (sigma={sigma}, epsilon={epsilon})")
+    plt.xlabel("Number of Participants (n)")
+    plt.ylabel("Correctness (Average)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+# 示例：比较不同 n 值对 correctness 的影响
+n_values = np.arange(50, 1000, 50)  # 生成5到50的n值，步长为5
+compare_n_effect_on_correctness(sigma=8, epsilon=6, n_values=n_values)
