@@ -1,68 +1,127 @@
 import random
 
 
-def redistribute_invitations(I):
+class Invitation:
+    def __init__(self, sender, orig_row, orig_col, intended_receiver):
+        self.sender = sender  # The user who sends the invitation (numbering starts from 1)
+        self.orig_row = orig_row  # The row index in the input matrix I (0-indexed, for tracking)
+        self.orig_col = orig_col  # The column index in the input matrix I (0-indexed, for tracking)
+        self.intended_receiver = intended_receiver  # The intended receiver of the invitation (numbering starts from 1)
+        self.final_receiver = None  # The final receiver of the invitation (to be determined)
+
+    def __repr__(self):
+        # Display format: Inv(Px->Py) indicates an invitation from P_x to P_y
+        return f"Inv(P{self.sender}->P{self.final_receiver})"
+
+
+def assign_invitations(I):
     """
     Input:
-        I: A 2D list of size n*d, where I[i][j] indicates the recipient of the j-th invitation sent by user Pi (user indices from 0 to n-1)
+        I: An n*d matrix (list of lists), where each element is a number representing that
+           the invitation is sent to P_i (participant numbering starts from 1)
     Output:
-        O: A 2D list of size n*d, where O[i] represents the list of sender indices whose invitations user Pi finally receives
+        O: An n*d matrix, where O[i][j] is an Invitation object representing the invitation
+           that P_(i+1) ultimately receives.
     """
-    n = len(I)  # Total number of users
-    d = len(I[0])  # Number of invitations each user sends, and the final number each user should receive
+    n = len(I)
+    if n == 0:
+        return []
+    d = len(I[0])
 
-    # 1. Build a list of invitations received by each user
-    received = [[] for _ in range(n)]
-    for sender in range(n):
-        for target in I[sender]:
-            received[target].append(sender)
-    print(received)
-    # 2. Preliminary assignment: if the number of invitations received is <= d, accept all;
-    #    if more than d, randomly select d invitations to accept and mark the rest as surplus.
-    accepted = [None] * n  # Final accepted invitation list for each user (records sender indices)
-    surplus = []  # List of surplus invitations (records sender indices)
+    # Create all Invitation objects and record their original positions in the input matrix.
+    # Note: sender numbering starts from 1.
+    invitations = []
+    for i in range(n):
+        for j in range(d):
+            inv = Invitation(sender=i + 1, orig_row=i, orig_col=j, intended_receiver=I[i][j])
+            invitations.append(inv)
 
-    for user in range(n):
-        if len(received[user]) <= d:
-            accepted[user] = list(received[user])
+    # Group invitations by intended_receiver; construct a dictionary for participants numbered 1 to n.
+    received_by = {i: [] for i in range(1, n + 1)}
+
+    for inv in invitations:
+        received_by[inv.intended_receiver].append(inv)
+
+    # For each participant, if the number of received invitations is not more than d, accept all.
+    # Otherwise, randomly choose d invitations to accept; extra invitations are stored for redistribution.
+    accepted_by = {i: [] for i in range(1, n + 1)}
+    extra_invitations = []
+    for user in range(1, n + 1):
+        inv_list = received_by[user]
+        if len(inv_list) <= d:
+            for inv in inv_list:
+                inv.final_receiver = user
+            accepted_by[user] = inv_list
         else:
-            # Randomly shuffle the received invitations before selecting d of them
-            random.shuffle(received[user])
-            accepted[user] = received[user][:d]
-            surplus.extend(received[user][d:])
+            accepted = random.sample(inv_list, d)
+            for inv in accepted:
+                inv.final_receiver = user
+            accepted_by[user] = accepted
+            for inv in inv_list:
+                if inv not in accepted:
+                    extra_invitations.append(inv)
 
-    # 3. Calculate the deficit (number of invitations needed) for each user and create a deficit list
-    #    where each user appears as many times as invitations they are missing.
-    deficit_list = []
-    for user in range(n):
-        deficit = d - len(accepted[user])
-        deficit_list.extend([user] * deficit)
+    # Identify participants who received fewer than d invitations and record how many they are missing.
+    deficiency = {user: d - len(accepted_by[user]) for user in range(1, n + 1) if len(accepted_by[user]) < d}
 
-    # Check if the number of surplus invitations matches the total deficit
-    if len(surplus) != len(deficit_list):
-        raise Exception("The number of surplus invitations does not match the deficit count!")
+    # Randomly redistribute extra invitations to participants with a deficiency.
+    while extra_invitations and deficiency:
+        inv = extra_invitations.pop()
+        user = random.choice(list(deficiency.keys()))
+        accepted_by[user].append(inv)
+        inv.final_receiver = user
+        deficiency[user] -= 1
+        if deficiency[user] == 0:
+            del deficiency[user]
 
-    # 4. Randomly shuffle both the surplus and deficit lists, then pair them to assign surplus invitations
-    #    to users with a deficit.
-    random.shuffle(surplus)
-    random.shuffle(deficit_list)
+    # Construct the output matrix O using each invitation's orig_row and orig_col.
+    O = [[None for _ in range(d)] for _ in range(n)]
+    for inv in invitations:
+        O[inv.orig_row][inv.orig_col] = inv
+    print(O)
 
-    for s, user in zip(surplus, deficit_list):
-        accepted[user].append(s)
-
-    return accepted
+    return O
 
 
-# Example usage
-if __name__ == '__main__':
-    # Example: Assume there are 3 users, each sending 2 invitations.
-    # Input matrix I[i][j] indicates the recipient of the invitation sent by user Pi.
+def convert_output_matrix(O):
+    """
+    Convert the output matrix O (a matrix of Invitation objects) into a numeric matrix.
+    Each element in the resulting matrix is the final receiver's number.
+    """
+    numeric_matrix = []
+    for row in O:
+        numeric_row = [inv.final_receiver for inv in row]
+        numeric_matrix.append(numeric_row)
+    return numeric_matrix
+
+def run_protocol_and_count(I, num_runs=100):
+    """
+    运行整个协议 num_runs 次，统计输出矩阵 O 中位置 [0][2] 的 Invitation 对象的 final_receiver 为 3（即 P3）的次数。
+    参数：
+        I: 输入矩阵（每个元素为数字，代表邀请的目标参与者，编号从 1 开始）
+        num_runs: 运行次数，默认为 100
+    返回：
+        满足条件的次数，并在控制台打印结果。
+    """
+    count = 0
+    for _ in range(num_runs):
+        O = assign_invitations(I)
+        # 检查 O[0][2] 的 Invitation 的 final_receiver 是否为 3
+        if O[0][2].final_receiver == 3:
+            count += 1
+    print(f"在 {num_runs} 次运行中，O[0][2] 的 Invitation 最终分配给 P3 的次数为：{count}")
+    return count
+
+# Example
+if __name__ == "__main__":
+    # Construct an example 4x3 input matrix,
+    # where each number represents the invitation target.
+    # For example, 2 means the invitation is sent to P2.
     I = [
-        [1, 1],  # User 0 sends invitations to users 0 and 1
-        [1, 2],  # User 1 sends invitations to users 1 and 2
-        [2, 0]  # User 2 sends invitations to users 2 and 0
+        [1, 2, 3],
+        [4, 5, 1],
+        [1, 1, 1],
+        [3, 3, 3],
+        [5,5,2]
     ]
-    O = redistribute_invitations(I)
-    print("Final invitation senders for each user:")
-    for i, invites in enumerate(O):
-        print(f"User {i}: {invites}")
+
